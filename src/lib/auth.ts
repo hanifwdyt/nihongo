@@ -24,13 +24,13 @@ export async function registerUser(email: string, password: string, name: string
   }
 
   const hash = await hashPassword(password);
-  const results = db.insert(users).values({
+  const [result] = await db.insert(users).values({
     email,
     passwordHash: hash,
     name,
-  }).returning().all();
+  }).returning();
 
-  return results[0];
+  return result;
 }
 
 export async function verifyCredentials(email: string, password: string) {

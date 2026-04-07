@@ -11,7 +11,7 @@ export async function GET() {
 
   const db = getDb();
 
-  const messages = db
+  const rows = await db
     .select({
       id: buddyMessages.id,
       role: buddyMessages.role,
@@ -21,9 +21,8 @@ export async function GET() {
     .from(buddyMessages)
     .where(eq(buddyMessages.userId, session.userId))
     .orderBy(desc(buddyMessages.createdAt))
-    .limit(50)
-    .all()
-    .reverse();
+    .limit(50);
+  const messages = rows.reverse();
 
   return Response.json({ messages });
 }

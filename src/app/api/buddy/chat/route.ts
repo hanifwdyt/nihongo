@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const userId = session.userId;
 
   // Load user profile
-  const user = db.select().from(users).where(eq(users.id, userId)).get();
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
@@ -33,50 +33,45 @@ export async function POST(request: Request) {
   // Load stats
   const now = new Date().toISOString();
 
-  const kanjiCards = db
+  const kanjiCards = await db
     .select()
     .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'kanji')))
-    .all();
+    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'kanji')));
 
-  const vocabCards = db
+  const vocabCards = await db
     .select()
     .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'vocab')))
-    .all();
+    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'vocab')));
 
-  const dueCards = db
+  const [dueCards] = await db
     .select({ count: sql<number>`count(*)` })
     .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), lte(srsCards.due, now)))
-    .get();
+    .where(and(eq(srsCards.userId, userId), lte(srsCards.due, now)));
 
-  const streak = db
+  const [streak] = await db
     .select()
     .from(streaks)
     .where(eq(streaks.userId, userId))
-    .get();
+    .limit(1);
 
-  const recentQuizzes = db
+  const recentQuizzes = await db
     .select()
     .from(quizResults)
     .where(eq(quizResults.userId, userId))
     .orderBy(desc(quizResults.completedAt))
-    .limit(5)
-    .all();
+    .limit(5);
 
   // Load memories
-  const memories = getMemories(userId);
+  const memories = await getMemories(userId);
 
   // Load last 20 messages for context
-  const history = db
+  const historyRows = await db
     .select()
     .from(buddyMessages)
     .where(eq(buddyMessages.userId, userId))
     .orderBy(desc(buddyMessages.createdAt))
-    .limit(20)
-    .all()
-    .reverse();
+    .limit(20);
+  const history = historyRows.reverse();
 
   // Build system prompt
   const systemPrompt = buildSenseiPrompt(
@@ -177,14 +172,12 @@ export async function POST(request: Request) {
     response.choices[0]?.message?.content ?? 'Gomen ne~ Sensei lagi error. Coba lagi ya!';
 
   // Save user message
-  db.insert(buddyMessages)
-    .values({ userId, role: 'user', content: message })
-    .run();
+  await db.insert(buddyMessages)
+    .values({ userId, role: 'user', content: message });
 
   // Save assistant message
-  db.insert(buddyMessages)
-    .values({ userId, role: 'assistant', content: assistantMessage })
-    .run();
+  await db.insert(buddyMessages)
+    .values({ userId, role: 'assistant', content: assistantMessage });
 
   // Check if any tool call returned a pageFilter
   let pageFilter = null;

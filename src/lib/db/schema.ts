@@ -1,7 +1,7 @@
-import { sqliteTable, text, integer, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { pgTable, serial, text, integer, real, uniqueIndex, timestamp } from 'drizzle-orm/pg-core';
 
-export const users = sqliteTable('users', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name').notNull(),
@@ -12,8 +12,8 @@ export const users = sqliteTable('users', {
   updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export const placementResults = sqliteTable('placement_results', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const placementResults = pgTable('placement_results', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   assignedLevel: text('assigned_level').notNull(),
   scoreN5: integer('score_n5').default(0),
@@ -24,8 +24,8 @@ export const placementResults = sqliteTable('placement_results', {
   takenAt: text('taken_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export const srsCards = sqliteTable('srs_cards', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const srsCards = pgTable('srs_cards', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   contentType: text('content_type').notNull(),
   contentId: text('content_id').notNull(),
@@ -41,8 +41,8 @@ export const srsCards = sqliteTable('srs_cards', {
   uniqueIndex('srs_cards_unique').on(table.userId, table.contentType, table.contentId),
 ]);
 
-export const quizResults = sqliteTable('quiz_results', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const quizResults = pgTable('quiz_results', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   quizType: text('quiz_type').notNull(),
   jlptLevel: text('jlpt_level'),
@@ -52,24 +52,24 @@ export const quizResults = sqliteTable('quiz_results', {
   completedAt: text('completed_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export const streaks = sqliteTable('streaks', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const streaks = pgTable('streaks', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().unique().references(() => users.id),
   currentStreak: integer('current_streak').default(0),
   longestStreak: integer('longest_streak').default(0),
   lastActiveDate: text('last_active_date'),
 });
 
-export const buddyMessages = sqliteTable('buddy_messages', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const buddyMessages = pgTable('buddy_messages', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   role: text('role').notNull(),
   content: text('content').notNull(),
   createdAt: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export const buddyMemory = sqliteTable('buddy_memory', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const buddyMemory = pgTable('buddy_memory', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   category: text('category').notNull(),
   content: text('content').notNull(),
@@ -78,8 +78,8 @@ export const buddyMemory = sqliteTable('buddy_memory', {
   updatedAt: text('updated_at').notNull().$defaultFn(() => new Date().toISOString()),
 });
 
-export const dailyActivity = sqliteTable('daily_activity', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+export const dailyActivity = pgTable('daily_activity', {
+  id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
   date: text('date').notNull(),
   itemsReviewed: integer('items_reviewed').default(0),

@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const db = getDb();
 
     // Save placement result
-    db.insert(placementResults)
+    await db.insert(placementResults)
       .values({
         userId: session.userId,
         assignedLevel: level,
@@ -29,28 +29,25 @@ export async function POST(request: Request) {
         scoreN3: scores?.n3 ?? 0,
         totalQuestions: totalQuestions ?? 0,
         totalCorrect: totalCorrect ?? 0,
-      })
-      .run();
+      });
 
     // Update user level and mark onboarding done
-    db.update(users)
+    await db.update(users)
       .set({
         currentLevel: level,
         onboardingDone: 1,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(users.id, session.userId))
-      .run();
+      .where(eq(users.id, session.userId));
 
     // Insert Sensei greeting message
-    db.insert(buddyMessages)
+    await db.insert(buddyMessages)
       .values({
         userId: session.userId,
         role: 'assistant',
         content:
           'Hajimemashite! Watashi wa Sensei desu~ \u3053\u308C\u304B\u3089\u4E00\u7DD2\u306B\u9811\u5F35\u308D\u3046\u306D\uFF01 (Nice to meet you! Let\'s do our best together!) \u{1F31F}',
-      })
-      .run();
+      });
 
     return Response.json({ success: true, level });
   } catch (err) {

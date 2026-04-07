@@ -115,13 +115,13 @@ export async function executeToolCall(
 ): Promise<string> {
   switch (toolName) {
     case 'get_user_progress':
-      return JSON.stringify(getUserProgress(userId));
+      return JSON.stringify(await getUserProgress(userId));
     case 'save_memory':
       return JSON.stringify(
-        executeSaveMemory(userId, args.category as string, args.content as string),
+        await executeSaveMemory(userId, args.category as string, args.content as string),
       );
     case 'get_memories':
-      return JSON.stringify(executeGetMemories(userId));
+      return JSON.stringify(await executeGetMemories(userId));
     case 'quiz_user':
       return JSON.stringify(generateQuiz(args.type as string));
     case 'filter_content':
@@ -131,41 +131,37 @@ export async function executeToolCall(
   }
 }
 
-function getUserProgress(userId: number) {
+async function getUserProgress(userId: number) {
   const db = getDb();
   const now = new Date().toISOString();
 
-  const kanjiCards = db
+  const kanjiCards = await db
     .select()
     .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'kanji')))
-    .all();
+    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'kanji')));
 
-  const vocabCards = db
+  const vocabCards = await db
     .select()
     .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'vocab')))
-    .all();
+    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'vocab')));
 
-  const dueCards = db
+  const [dueCards] = await db
     .select({ count: sql<number>`count(*)` })
     .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), lte(srsCards.due, now)))
-    .get();
+    .where(and(eq(srsCards.userId, userId), lte(srsCards.due, now)));
 
-  const streak = db
+  const [streak] = await db
     .select()
     .from(streaks)
     .where(eq(streaks.userId, userId))
-    .get();
+    .limit(1);
 
-  const recentQuizzes = db
+  const recentQuizzes = await db
     .select()
     .from(quizResults)
     .where(eq(quizResults.userId, userId))
     .orderBy(desc(quizResults.completedAt))
-    .limit(5)
-    .all();
+    .limit(5);
 
   return {
     kanji: {
@@ -188,13 +184,13 @@ function getUserProgress(userId: number) {
   };
 }
 
-function executeSaveMemory(userId: number, category: string, content: string) {
-  const memory = saveMemory(userId, category, content, 'buddy_chat');
+async function executeSaveMemory(userId: number, category: string, content: string) {
+  const memory = await saveMemory(userId, category, content, 'buddy_chat');
   return { saved: true, id: memory.id, category, content };
 }
 
-function executeGetMemories(userId: number) {
-  const memories = getMemories(userId);
+async function executeGetMemories(userId: number) {
+  const memories = await getMemories(userId);
   return memories.map((m) => ({
     id: m.id,
     category: m.category,

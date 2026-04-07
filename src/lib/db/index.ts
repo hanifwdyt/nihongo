@@ -1,20 +1,22 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import * as schema from './schema';
 import { migrate } from './migrate';
 
-const dbPath = process.env.DATABASE_PATH || './data/nihongo.db';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/nihongo';
 
+let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+let _migrated = false;
 
 export function getDb() {
   if (!_db) {
-    const sqlite = new Database(dbPath);
-    sqlite.pragma('journal_mode = WAL');
-    sqlite.pragma('busy_timeout = 5000');
-    sqlite.pragma('foreign_keys = ON');
-    _db = drizzle(sqlite, { schema });
-    migrate(sqlite);
+    _pool = new Pool({ connectionString: DATABASE_URL });
+    _db = drizzle(_pool, { schema });
+  }
+  if (!_migrated) {
+    _migrated = true;
+    migrate(_pool!).catch(console.error);
   }
   return _db;
 }
