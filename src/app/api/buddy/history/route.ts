@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { buddyMessages } from '@/lib/db/schema';

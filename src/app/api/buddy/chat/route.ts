@@ -1,8 +1,9 @@
+export const dynamic = 'force-dynamic';
 import { getSession } from '@/lib/auth';
 import { getDb } from '@/lib/db';
 import { users, srsCards, quizResults, streaks, buddyMessages } from '@/lib/db/schema';
 import { eq, desc, and, lte, sql } from 'drizzle-orm';
-import { ai, BUDDY_MODEL } from '@/lib/ai/client';
+import { getAI, BUDDY_MODEL } from '@/lib/ai/client';
 import { buildSenseiPrompt } from '@/lib/ai/persona';
 import { toolDefinitions, executeToolCall } from '@/lib/ai/tools';
 import { getMemories } from '@/lib/ai/memory';
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
   let rounds = 0;
 
   try {
-    response = await ai.chat.completions.create({
+    response = await getAI().chat.completions.create({
       model: BUDDY_MODEL,
       messages,
       tools: toolDefinitions,
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
       }
 
       // Call again with tool results
-      response = await ai.chat.completions.create({
+      response = await getAI().chat.completions.create({
         model: BUDDY_MODEL,
         messages,
         tools: toolDefinitions,

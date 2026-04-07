@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { COOKIE_NAME } from '@/lib/auth';
 import { cookies } from 'next/headers';
 

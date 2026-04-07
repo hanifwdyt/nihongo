@@ -1,22 +1,31 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
-import { migrate } from './migrate';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/nihongo';
+const DATABASE_URL = process.env.DATABASE_URL || '';
 
 let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 let _migrated = false;
 
+function getPool(): Pool {
+  if (!_pool) {
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL is not set');
+    }
+    _pool = new Pool({ connectionString: DATABASE_URL });
+  }
+  return _pool;
+}
+
 export function getDb() {
   if (!_db) {
-    _pool = new Pool({ connectionString: DATABASE_URL });
-    _db = drizzle(_pool, { schema });
+    _db = drizzle(getPool(), { schema });
   }
   if (!_migrated) {
     _migrated = true;
-    migrate(_pool!).catch(console.error);
+    // Run migrations async, don't block
+    import('./migrate').then(({ migrate }) => migrate(getPool())).catch(console.error);
   }
   return _db;
 }
