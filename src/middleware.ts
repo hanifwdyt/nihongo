@@ -10,6 +10,7 @@ const JWT_SECRET = new TextEncoder().encode(jwtSecret || 'dev-secret-change-me')
 
 const PUBLIC_PATHS = [
   '/',
+  '/home',
   '/login',
   '/register',
   '/pricing',
