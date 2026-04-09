@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import { usePageContext } from '@/hooks/usePageContext';
 import FloatingCompanion from './FloatingCompanion';
 
@@ -12,9 +11,12 @@ function PageContextTracker() {
 
 export default function CompanionProvider() {
   const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'guest'>('loading');
-  const pathname = usePathname();
+  const checkedRef = useRef(false);
 
   useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+
     async function check() {
       try {
         const res = await fetch('/api/auth/me');
@@ -24,7 +26,7 @@ export default function CompanionProvider() {
       }
     }
     check();
-  }, [pathname]);
+  }, []);
 
   if (authState === 'loading') return null;
 

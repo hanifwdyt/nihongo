@@ -10,6 +10,10 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Email, password, and name are required' }, { status: 400 });
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return Response.json({ error: 'Invalid email format' }, { status: 400 });
+    }
+
     if (password.length < 6) {
       return Response.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
@@ -27,8 +31,8 @@ export async function POST(request: Request) {
     });
 
     return Response.json({ success: true, user: { id: user.id, name: user.name, email: user.email } });
-  } catch (err: any) {
-    if (err.message === 'Email already registered') {
+  } catch (err) {
+    if (err instanceof Error && err.message === 'Email already registered') {
       return Response.json({ error: 'Email already registered' }, { status: 409 });
     }
     return Response.json({ error: 'Registration failed' }, { status: 500 });

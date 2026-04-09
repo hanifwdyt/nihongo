@@ -81,6 +81,12 @@ const MIGRATIONS = [
     minutes_active INTEGER DEFAULT 0,
     UNIQUE(user_id, date)
   )`,
+  // Indexes for performance
+  `CREATE INDEX IF NOT EXISTS idx_srs_user_due ON srs_cards(user_id, due)`,
+  `CREATE INDEX IF NOT EXISTS idx_srs_user_type ON srs_cards(user_id, content_type)`,
+  `CREATE INDEX IF NOT EXISTS idx_buddy_msg_user ON buddy_messages(user_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_buddy_mem_user ON buddy_memory(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_quiz_user ON quiz_results(user_id)`,
 ];
 
 export async function migrate(pool: Pool) {

@@ -1,20 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface Message {
   id: number;
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;
-}
-
-function formatMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code class="bg-zinc-200 dark:bg-zinc-700 px-1 rounded text-sm">$1</code>')
-    .replace(/\n/g, '<br />');
 }
 
 export default function ChatInterface() {
@@ -24,6 +17,7 @@ export default function ChatInterface() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -32,6 +26,10 @@ export default function ChatInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   useEffect(() => {
     async function loadHistory() {
@@ -73,11 +71,16 @@ export default function ChatInterface() {
       { id: assistantMsgId, role: 'assistant', content: '', createdAt: new Date().toISOString() },
     ]);
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const res = await fetch('/api/buddy/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -175,7 +178,7 @@ export default function ChatInterface() {
                   ? 'bg-emerald-600 text-white rounded-br-md'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-md'
               }`}
-              dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.content) }}
             />
           </div>
         ))}

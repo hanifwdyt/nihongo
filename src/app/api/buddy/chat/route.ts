@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { getSession } from '@/lib/auth';
-import { getDb } from '@/lib/db';
+import { getDb, ensureMigrated } from '@/lib/db';
 import { users, srsCards, quizResults, streaks, buddyMessages } from '@/lib/db/schema';
 import { eq, desc, and, lte, sql } from 'drizzle-orm';
 import { getAI, BUDDY_MODEL } from '@/lib/ai/client';
@@ -10,6 +10,24 @@ import { getMemories } from '@/lib/ai/memory';
 import type OpenAI from 'openai';
 
 const MAX_TOOL_ROUNDS = 5;
+const MAX_MESSAGE_LENGTH = 2000;
+
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<number, { count: number; resetAt: number }>();
+const RATE_LIMIT = 20; // requests per window
+const RATE_WINDOW = 60_000; // 1 minute
+
+function checkRateLimit(userId: number): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -21,9 +39,18 @@ export async function POST(request: Request) {
   if (!message?.trim()) {
     return Response.json({ error: 'Message is required' }, { status: 400 });
   }
+  if (message.length > MAX_MESSAGE_LENGTH) {
+    return Response.json({ error: 'Message too long' }, { status: 400 });
+  }
 
-  const db = getDb();
   const userId = session.userId;
+
+  if (!checkRateLimit(userId)) {
+    return Response.json({ error: 'Too many messages. Please wait a moment.' }, { status: 429 });
+  }
+
+  await ensureMigrated();
+  const db = getDb();
 
   // Load user profile
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -31,47 +58,25 @@ export async function POST(request: Request) {
     return Response.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Load stats
+  // Load stats in parallel
   const now = new Date().toISOString();
 
-  const kanjiCards = await db
-    .select()
-    .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'kanji')));
+  const [kanjiCards, vocabCards, [dueCards], [streak], recentQuizzes, memoriesData, historyRows] =
+    await Promise.all([
+      db.select({ id: srsCards.id, reps: srsCards.reps }).from(srsCards)
+        .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'kanji'))),
+      db.select({ id: srsCards.id, reps: srsCards.reps }).from(srsCards)
+        .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'vocab'))),
+      db.select({ count: sql<number>`count(*)` }).from(srsCards)
+        .where(and(eq(srsCards.userId, userId), lte(srsCards.due, now))),
+      db.select().from(streaks).where(eq(streaks.userId, userId)).limit(1),
+      db.select().from(quizResults).where(eq(quizResults.userId, userId))
+        .orderBy(desc(quizResults.completedAt)).limit(5),
+      getMemories(userId),
+      db.select().from(buddyMessages).where(eq(buddyMessages.userId, userId))
+        .orderBy(desc(buddyMessages.createdAt)).limit(20),
+    ]);
 
-  const vocabCards = await db
-    .select()
-    .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), eq(srsCards.contentType, 'vocab')));
-
-  const [dueCards] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(srsCards)
-    .where(and(eq(srsCards.userId, userId), lte(srsCards.due, now)));
-
-  const [streak] = await db
-    .select()
-    .from(streaks)
-    .where(eq(streaks.userId, userId))
-    .limit(1);
-
-  const recentQuizzes = await db
-    .select()
-    .from(quizResults)
-    .where(eq(quizResults.userId, userId))
-    .orderBy(desc(quizResults.completedAt))
-    .limit(5);
-
-  // Load memories
-  const memories = await getMemories(userId);
-
-  // Load last 20 messages for context
-  const historyRows = await db
-    .select()
-    .from(buddyMessages)
-    .where(eq(buddyMessages.userId, userId))
-    .orderBy(desc(buddyMessages.createdAt))
-    .limit(20);
   const history = historyRows.reverse();
 
   // Build system prompt
@@ -89,7 +94,7 @@ export async function POST(request: Request) {
       streak: streak?.currentStreak ?? 0,
       dueCards: dueCards?.count ?? 0,
     },
-    memories.map((m) => ({ category: m.category, content: m.content })),
+    memoriesData.map((m) => ({ category: m.category, content: m.content })),
     recentQuizzes.map((q) => ({
       quizType: q.quizType,
       jlptLevel: q.jlptLevel,
@@ -179,6 +184,10 @@ export async function POST(request: Request) {
     let fullContent = '';
     const encoder = new TextEncoder();
 
+    // Track save promise so we can ensure it completes
+    let saveResolve: () => void;
+    const savePromise = new Promise<void>((resolve) => { saveResolve = resolve; });
+
     const readable = new ReadableStream({
       async start(controller) {
         try {
@@ -191,9 +200,6 @@ export async function POST(request: Request) {
 
           for await (const chunk of stream) {
             const delta = chunk.choices[0]?.delta;
-
-            // If the model decides to call tools during streaming, collect and skip
-            // (unlikely after tool rounds, but handle gracefully)
             if (delta?.tool_calls) continue;
 
             const text = delta?.content;
@@ -205,20 +211,26 @@ export async function POST(request: Request) {
             }
           }
 
-          // Send done event
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           controller.close();
-
-          // Save assistant message after stream completes
-          const finalContent = fullContent || 'Gomen ne~ Sensei lagi error. Coba lagi ya!';
-          await db.insert(buddyMessages)
-            .values({ userId, role: 'assistant', content: finalContent });
         } catch (err) {
-          console.error('Stream error:', err);
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ type: 'error', data: 'Stream interrupted' })}\n\n`),
-          );
-          controller.close();
+          console.error('Stream error:', err instanceof Error ? err.message : err);
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'error', data: 'Stream interrupted' })}\n\n`),
+            );
+            controller.close();
+          } catch { /* controller already closed */ }
+        } finally {
+          // Always save assistant message, even if client disconnected
+          const finalContent = fullContent || 'Gomen ne~ Sensei lagi error. Coba lagi ya!';
+          try {
+            await db.insert(buddyMessages)
+              .values({ userId, role: 'assistant', content: finalContent });
+          } catch (saveErr) {
+            console.error('Failed to save assistant message:', saveErr instanceof Error ? saveErr.message : saveErr);
+          }
+          saveResolve!();
         }
       },
     });
@@ -226,7 +238,7 @@ export async function POST(request: Request) {
     return new Response(readable, {
       headers: {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store',
         Connection: 'keep-alive',
       },
     });

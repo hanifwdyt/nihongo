@@ -1,15 +1,25 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { getDb } from './db';
+import bcrypt from 'bcryptjs';
+import { getDb, ensureMigrated } from './db';
 import { users } from './db/schema';
 import { eq } from 'drizzle-orm';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'dev-secret-change-me',
-);
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET environment variable is required in production');
+}
+export const JWT_SECRET = new TextEncoder().encode(jwtSecret || 'dev-secret-change-me');
 const COOKIE_NAME = 'nihongo-session';
 
-async function hashPassword(password: string): Promise<string> {
+const BCRYPT_ROUNDS = 12;
+
+// Detect legacy SHA-256 hashes (exactly 64 hex chars)
+function isLegacySha256(hash: string): boolean {
+  return /^[a-f0-9]{64}$/.test(hash);
+}
+
+async function legacySha256(password: string): Promise<string> {
   const data = new TextEncoder().encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -17,13 +27,14 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 export async function registerUser(email: string, password: string, name: string) {
+  await ensureMigrated();
   const db = getDb();
   const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing.length > 0) {
     throw new Error('Email already registered');
   }
 
-  const hash = await hashPassword(password);
+  const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
   const [result] = await db.insert(users).values({
     email,
     passwordHash: hash,
@@ -34,14 +45,29 @@ export async function registerUser(email: string, password: string, name: string
 }
 
 export async function verifyCredentials(email: string, password: string) {
+  await ensureMigrated();
   const db = getDb();
   const found = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (found.length === 0) return null;
 
-  const hash = await hashPassword(password);
-  if (hash !== found[0].passwordHash) return null;
+  const user = found[0];
+  let valid = false;
 
-  return found[0];
+  if (isLegacySha256(user.passwordHash)) {
+    // Legacy SHA-256: verify and upgrade to bcrypt
+    const sha256Hash = await legacySha256(password);
+    if (sha256Hash !== user.passwordHash) return null;
+    valid = true;
+
+    // Upgrade hash to bcrypt
+    const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
+  } else {
+    // bcrypt verification
+    valid = await bcrypt.compare(password, user.passwordHash);
+  }
+
+  return valid ? user : null;
 }
 
 export async function createToken(userId: number): Promise<string> {
@@ -72,6 +98,7 @@ export async function getCurrentUser() {
   const session = await getSession();
   if (!session) return null;
 
+  await ensureMigrated();
   const db = getDb();
   const found = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
   return found[0] ?? null;

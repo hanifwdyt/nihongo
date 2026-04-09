@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "jose": "^6.2.2",
     "motion": "^12.38.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

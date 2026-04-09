@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useCompanionStore } from '@/store/companion';
 import { getCreatureById } from '@/data/creatures';
+import { sanitizeHtml } from '@/lib/sanitize';
 import { CreatureSVG } from './creatures';
 
 interface Props {
@@ -37,7 +38,7 @@ export default function CompanionFeedback({ score, total, quizType, missedSummar
             ? `[SYSTEM: ${quizType} quiz done] User scored ${score}/${total}.${context} Encourage + one tip. 2-3 sentences, anime style.`
             : `[SYSTEM: ${quizType} quiz done] User scored ${score}/${total}.${context} Be very encouraging, suggest practice. 2-3 sentences, anime style.`;
 
-        const res = await fetch('/api/buddy/chat', {
+        const res = await fetch('/api/buddy/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: prompt }),
@@ -90,9 +91,7 @@ export default function CompanionFeedback({ score, total, quizType, missedSummar
           ) : (
             <p
               className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed"
-              dangerouslySetInnerHTML={{
-                __html: (comment ?? '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>'),
-              }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(comment ?? '') }}
             />
           )}
         </div>

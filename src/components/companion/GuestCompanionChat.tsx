@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { sanitizeHtml } from '@/lib/sanitize';
 import type { Creature } from '@/data/creatures';
 
 interface QuickAction {
@@ -112,11 +113,7 @@ export default function GuestCompanionChat({ creature }: { creature: Creature })
                     ? 'bg-emerald-600 text-white rounded-br-sm'
                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-sm'
                 }`}
-                dangerouslySetInnerHTML={{
-                  __html: msg.content
-                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\n/g, '<br/>'),
-                }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.content) }}
               />
             </div>
             {msg.cta && (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useCompanionStore } from '@/store/companion';
+import { sanitizeHtml } from '@/lib/sanitize';
 import type { Creature } from '@/data/creatures';
 
 interface Message {
@@ -16,11 +17,16 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const { setMood, setPageFilter, showSpeech } = useCompanionStore();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -59,11 +65,16 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
       { id: assistantMsgId, role: 'assistant', content: '' },
     ]);
 
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
       const res = await fetch('/api/buddy/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
+        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -146,13 +157,7 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
                   ? 'bg-emerald-600 text-white rounded-br-sm'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-sm'
               }`}
-              dangerouslySetInnerHTML={{
-                __html: msg.content
-                  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                  .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                  .replace(/`(.+?)`/g, '<code class="bg-zinc-200 dark:bg-zinc-700 px-0.5 rounded text-xs">$1</code>')
-                  .replace(/\n/g, '<br/>'),
-              }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(msg.content) }}
             />
           </div>
         ))}
