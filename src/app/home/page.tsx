@@ -56,7 +56,17 @@ function SectionReveal({ children, className = '', delay = 0 }: { children: Reac
 
 const FLOATING_KANJI = ['漢', '字', '語', '学', '読', '書', '話', '聞', '見', '食', '行', '来', '人', '日', '本', '大', '小', '山', '川', '花'];
 
+// Deterministic pseudo-random based on index to avoid hydration mismatch
+function seeded(i: number, offset = 0): number {
+  const x = Math.sin((i + 1) * 9301 + offset * 4999) * 10000;
+  return x - Math.floor(x);
+}
+
 function FloatingKanji() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden>
       {FLOATING_KANJI.map((char, i) => (
@@ -64,18 +74,18 @@ function FloatingKanji() {
           key={i}
           className="absolute text-emerald-500/[0.04] dark:text-emerald-400/[0.06] font-bold"
           style={{
-            fontSize: `${Math.random() * 60 + 40}px`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            fontSize: `${seeded(i, 0) * 60 + 40}px`,
+            left: `${seeded(i, 1) * 100}%`,
+            top: `${seeded(i, 2) * 100}%`,
           }}
           animate={{
             y: [0, -30, 0],
-            rotate: [0, Math.random() > 0.5 ? 10 : -10, 0],
+            rotate: [0, seeded(i, 3) > 0.5 ? 10 : -10, 0],
           }}
           transition={{
-            duration: Math.random() * 6 + 6,
+            duration: seeded(i, 4) * 6 + 6,
             repeat: Infinity,
-            delay: Math.random() * 4,
+            delay: seeded(i, 5) * 4,
             ease: 'easeInOut',
           }}
         >
@@ -91,23 +101,27 @@ function FloatingKanji() {
 const KANA_CHARS = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん'.split('');
 
 function KanaRain() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden>
       {Array.from({ length: 20 }).map((_, i) => (
         <motion.span
           key={i}
           className="absolute text-emerald-500/[0.07] dark:text-emerald-400/[0.08] text-lg font-light"
-          style={{ left: `${(i / 20) * 100 + Math.random() * 5}%` }}
+          style={{ left: `${(i / 20) * 100 + seeded(i, 10) * 5}%` }}
           initial={{ top: '-5%', opacity: 0 }}
           animate={{ top: '105%', opacity: [0, 0.6, 0.6, 0] }}
           transition={{
-            duration: Math.random() * 8 + 10,
+            duration: seeded(i, 11) * 8 + 10,
             repeat: Infinity,
-            delay: Math.random() * 10,
+            delay: seeded(i, 12) * 10,
             ease: 'linear',
           }}
         >
-          {KANA_CHARS[Math.floor(Math.random() * KANA_CHARS.length)]}
+          {KANA_CHARS[Math.floor(seeded(i, 13) * KANA_CHARS.length)]}
         </motion.span>
       ))}
     </div>
