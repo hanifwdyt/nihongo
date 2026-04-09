@@ -112,22 +112,23 @@ export async function POST(request: Request) {
     { role: 'user', content: message },
   ];
 
-  // Call AI with tool loop
-  let response: OpenAI.Chat.Completions.ChatCompletion;
+  // Process tool call rounds (non-streamed) first
+  let pageFilter: Record<string, unknown> | null = null;
   let rounds = 0;
 
   try {
-    response = await getAI().chat.completions.create({
-      model: BUDDY_MODEL,
-      messages,
-      tools: toolDefinitions,
-      max_tokens: 1024,
-    });
-
-    // Handle tool calls in a loop
+    // Do tool call rounds non-streamed
     while (rounds < MAX_TOOL_ROUNDS) {
+      const response = await getAI().chat.completions.create({
+        model: BUDDY_MODEL,
+        messages,
+        tools: toolDefinitions,
+        max_tokens: 1024,
+      });
+
       const choice = response.choices[0];
       if (!choice.message.tool_calls?.length) {
+        // No tool calls — break out to stream the final response
         break;
       }
 
@@ -144,6 +145,14 @@ export async function POST(request: Request) {
           userId,
         );
 
+        // Check for pageFilter in tool result
+        try {
+          const parsed = JSON.parse(result);
+          if (parsed.pageFilter) {
+            pageFilter = parsed.pageFilter;
+          }
+        } catch {}
+
         messages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -151,16 +160,76 @@ export async function POST(request: Request) {
         });
       }
 
-      // Call again with tool results
-      response = await getAI().chat.completions.create({
-        model: BUDDY_MODEL,
-        messages,
-        tools: toolDefinitions,
-        max_tokens: 1024,
-      });
-
       rounds++;
     }
+
+    // Save user message now (before streaming starts)
+    await db.insert(buddyMessages)
+      .values({ userId, role: 'user', content: message });
+
+    // Stream the final response
+    const stream = await getAI().chat.completions.create({
+      model: BUDDY_MODEL,
+      messages,
+      tools: toolDefinitions,
+      max_tokens: 1024,
+      stream: true,
+    });
+
+    let fullContent = '';
+    const encoder = new TextEncoder();
+
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          // Send pageFilter first if exists
+          if (pageFilter) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: 'pageFilter', data: pageFilter })}\n\n`),
+            );
+          }
+
+          for await (const chunk of stream) {
+            const delta = chunk.choices[0]?.delta;
+
+            // If the model decides to call tools during streaming, collect and skip
+            // (unlikely after tool rounds, but handle gracefully)
+            if (delta?.tool_calls) continue;
+
+            const text = delta?.content;
+            if (text) {
+              fullContent += text;
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ type: 'text', data: text })}\n\n`),
+              );
+            }
+          }
+
+          // Send done event
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+          controller.close();
+
+          // Save assistant message after stream completes
+          const finalContent = fullContent || 'Gomen ne~ Sensei lagi error. Coba lagi ya!';
+          await db.insert(buddyMessages)
+            .values({ userId, role: 'assistant', content: finalContent });
+        } catch (err) {
+          console.error('Stream error:', err);
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: 'error', data: 'Stream interrupted' })}\n\n`),
+          );
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      },
+    });
   } catch (error) {
     console.error('AI API error:', error instanceof Error ? error.message : error);
     return Response.json(
@@ -168,30 +237,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-
-  const assistantMessage =
-    response.choices[0]?.message?.content ?? 'Gomen ne~ Sensei lagi error. Coba lagi ya!';
-
-  // Save user message
-  await db.insert(buddyMessages)
-    .values({ userId, role: 'user', content: message });
-
-  // Save assistant message
-  await db.insert(buddyMessages)
-    .values({ userId, role: 'assistant', content: assistantMessage });
-
-  // Check if any tool call returned a pageFilter
-  let pageFilter = null;
-  for (const msg of messages) {
-    if ('role' in msg && msg.role === 'tool' && typeof msg.content === 'string') {
-      try {
-        const parsed = JSON.parse(msg.content);
-        if (parsed.pageFilter) {
-          pageFilter = parsed.pageFilter;
-        }
-      } catch {}
-    }
-  }
-
-  return Response.json({ response: assistantMessage, pageFilter });
 }

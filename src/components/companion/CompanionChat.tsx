@@ -46,10 +46,18 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
     const text = input.trim();
     if (!text || loading) return;
 
+    const assistantMsgId = Date.now() + 1;
+
     setMessages((prev) => [...prev, { id: Date.now(), role: 'user', content: text }]);
     setInput('');
     setLoading(true);
     setMood('thinking');
+
+    // Add empty assistant message to stream into
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantMsgId, role: 'assistant', content: '' },
+    ]);
 
     try {
       const res = await fetch('/api/buddy/chat', {
@@ -58,28 +66,56 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
         body: JSON.stringify({ message: text }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now() + 1, role: 'assistant', content: data.response },
-        ]);
+      if (!res.ok || !res.body) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: 'Gomen~ ada error. Coba lagi ya! 🙏' }
+              : m,
+          ),
+        );
+        return;
+      }
 
-        // Check if AI returned a page filter command
-        if (data.pageFilter) {
-          setPageFilter(data.pageFilter);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === 'text') {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, content: m.content + event.data }
+                    : m,
+                ),
+              );
+              setMood('talking');
+            } else if (event.type === 'pageFilter') {
+              setPageFilter(event.data);
+            }
+          } catch {}
         }
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          { id: Date.now() + 1, role: 'assistant', content: 'Gomen~ ada error. Coba lagi ya! 🙏' },
-        ]);
       }
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now() + 1, role: 'assistant', content: 'Network error~ Coba lagi! 🙏' },
-      ]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId && !m.content
+            ? { ...m, content: 'Network error~ Coba lagi! 🙏' }
+            : m,
+        ),
+      );
     } finally {
       setLoading(false);
       setMood('idle');
@@ -99,7 +135,7 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
             </p>
           </div>
         )}
-        {messages.map((msg) => (
+        {messages.filter((m) => m.content).map((msg) => (
           <div
             key={msg.id}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -120,7 +156,7 @@ export default function CompanionChat({ creature }: { creature: Creature }) {
             />
           </div>
         ))}
-        {loading && (
+        {loading && messages.length > 0 && messages[messages.length - 1]?.content === '' && (
           <div className="flex gap-1 px-3 py-2">
             <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" />
             <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:150ms]" />

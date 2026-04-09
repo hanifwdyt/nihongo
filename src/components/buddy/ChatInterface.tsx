@@ -61,9 +61,17 @@ export default function ChatInterface() {
       createdAt: new Date().toISOString(),
     };
 
+    const assistantMsgId = Date.now() + 1;
+
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
+
+    // Add empty assistant message that we'll stream into
+    setMessages((prev) => [
+      ...prev,
+      { id: assistantMsgId, role: 'assistant', content: '', createdAt: new Date().toISOString() },
+    ]);
 
     try {
       const res = await fetch('/api/buddy/chat', {
@@ -72,32 +80,53 @@ export default function ChatInterface() {
         body: JSON.stringify({ message: text }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const assistantMsg: Message = {
-          id: Date.now() + 1,
-          role: 'assistant',
-          content: data.response,
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
-      } else {
-        const assistantMsg: Message = {
-          id: Date.now() + 1,
-          role: 'assistant',
-          content: 'Gomen ne~ ada error. Coba lagi ya! 🙏',
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
+      if (!res.ok || !res.body) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId
+              ? { ...m, content: 'Gomen ne~ ada error. Coba lagi ya! 🙏' }
+              : m,
+          ),
+        );
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === 'text') {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? { ...m, content: m.content + event.data }
+                    : m,
+                ),
+              );
+            }
+          } catch {}
+        }
       }
     } catch {
-      const assistantMsg: Message = {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: 'Gomen ne~ network error. Coba lagi ya! 🙏',
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantMsgId && !m.content
+            ? { ...m, content: 'Gomen ne~ network error. Coba lagi ya! 🙏' }
+            : m,
+        ),
+      );
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -128,7 +157,7 @@ export default function ChatInterface() {
             </p>
           </div>
         )}
-        {messages.map((msg) => (
+        {messages.filter((m) => m.content).map((msg) => (
           <div
             key={msg.id}
             className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
@@ -150,7 +179,7 @@ export default function ChatInterface() {
             />
           </div>
         ))}
-        {loading && (
+        {loading && messages.length > 0 && messages[messages.length - 1]?.content === '' && (
           <div className="flex gap-3">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-sm font-bold text-emerald-600">
               先
