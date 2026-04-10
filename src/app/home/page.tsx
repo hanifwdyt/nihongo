@@ -237,17 +237,17 @@ function FeatureCard({
   return (
     <SectionReveal delay={delay}>
       <motion.div
-        className="group relative rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-8 overflow-hidden h-full"
-        whileHover={{ y: -6 }}
+        className="group relative card-elevated p-8 overflow-hidden h-full"
+        whileHover={{ y: -8, scale: 1.01 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       >
         <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${gradient}`} />
         <div className="relative z-10">
-          <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 transition-transform duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 font-jp">
             {icon}
           </div>
-          <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">{title}</h3>
-          <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed">{description}</p>
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-2">{title}</h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{description}</p>
         </div>
       </motion.div>
     </SectionReveal>
@@ -284,11 +284,12 @@ export default function HomePage() {
   return (
     <div className="overflow-x-hidden">
       {/* ══════════ HERO ══════════ */}
-      <section ref={heroRef} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[100svh] flex items-center justify-center overflow-hidden texture-grain">
         <FloatingKanji />
 
-        {/* Radial gradient bg */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.08)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.12)_0%,transparent_70%)]" />
+        {/* Mesh gradient bg */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(16,185,129,0.12),transparent)] dark:bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(16,185,129,0.18),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,rgba(14,165,233,0.06),transparent)] dark:bg-[radial-gradient(ellipse_at_80%_80%,rgba(14,165,233,0.08),transparent)]" />
 
         <motion.div
           style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
@@ -310,15 +311,13 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95]"
+            className="leading-[0.95]"
           >
-            <span className="text-zinc-900 dark:text-zinc-100">Learn</span>
-            <br />
-            <span className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 bg-clip-text text-transparent">
+            <span className="block text-5xl sm:text-7xl lg:text-[5.5rem] font-black tracking-tight text-zinc-900 dark:text-zinc-100">Learn</span>
+            <span className="block font-display italic text-6xl sm:text-8xl lg:text-[7rem] bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-400 bg-clip-text text-transparent mt-1">
               Japanese
             </span>
-            <br />
-            <span className="text-zinc-900 dark:text-zinc-100 text-4xl sm:text-5xl lg:text-6xl font-bold">
+            <span className="block text-3xl sm:text-4xl lg:text-5xl font-light tracking-tight text-zinc-500 dark:text-zinc-400 mt-3">
               the way that sticks.
             </span>
           </motion.h1>
@@ -416,7 +415,7 @@ export default function HomePage() {
                 <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm tracking-widest uppercase">Interactive Learning</span>
                 <h2 className="mt-4 text-4xl sm:text-5xl font-black text-zinc-900 dark:text-zinc-100 leading-tight">
                   Kana at your<br />
-                  <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">fingertips.</span>
+                  <span className="font-display italic bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">fingertips.</span>
                 </h2>
                 <p className="mt-6 text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-md">
                   Hover or tap each character to reveal its reading. Start from basic vowels and work your way through 5 progressive levels of Hiragana and Katakana.
@@ -454,12 +453,12 @@ export default function HomePage() {
       </section>
 
       {/* ══════════ FEATURES GRID ══════════ */}
-      <section className="py-28 sm:py-36 px-6 bg-zinc-50 dark:bg-zinc-950/50">
+      <section className="relative py-28 sm:py-36 px-6 bg-zinc-50/80 dark:bg-zinc-950/50 texture-grain">
         <div className="max-w-6xl mx-auto">
           <SectionReveal className="text-center mb-16">
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm tracking-widest uppercase">Everything You Need</span>
-            <h2 className="mt-4 text-4xl sm:text-5xl font-black text-zinc-900 dark:text-zinc-100">
-              One app. Complete journey.
+            <h2 className="mt-4 text-4xl sm:text-5xl text-zinc-900 dark:text-zinc-100">
+              <span className="font-black">One app.</span> <span className="font-display italic">Complete journey.</span>
             </h2>
             <p className="mt-4 text-lg text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto">
               From your first あ to reading Japanese novels. Every tool you need to master the language.
@@ -518,8 +517,8 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto">
           <SectionReveal className="text-center mb-20">
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm tracking-widest uppercase">Your Learning Path</span>
-            <h2 className="mt-4 text-4xl sm:text-5xl font-black text-zinc-900 dark:text-zinc-100">
-              Step by step to fluency.
+            <h2 className="mt-4 text-4xl sm:text-5xl text-zinc-900 dark:text-zinc-100">
+              <span className="font-black">Step by step</span> <span className="font-display italic">to fluency.</span>
             </h2>
           </SectionReveal>
 
@@ -568,7 +567,7 @@ export default function HomePage() {
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm tracking-widest uppercase">AI-Powered</span>
               <h2 className="mt-4 text-4xl sm:text-5xl font-black text-zinc-900 dark:text-zinc-100 leading-tight">
                 Meet your personal<br />
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Sensei.</span>
+                <span className="font-display italic bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Sensei.</span>
               </h2>
               <p className="mt-6 text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-md">
                 An AI study buddy that remembers your progress, quizzes you on weak points, and keeps you motivated with anime-style encouragement.
@@ -636,8 +635,8 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center">
           <SectionReveal>
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm tracking-widest uppercase">JLPT Preparation</span>
-            <h2 className="mt-4 text-4xl sm:text-5xl font-black text-zinc-900 dark:text-zinc-100">
-              From N5 to N1.
+            <h2 className="mt-4 text-4xl sm:text-5xl text-zinc-900 dark:text-zinc-100">
+              <span className="font-black">From N5</span> <span className="font-display italic">to N1.</span>
             </h2>
             <p className="mt-4 text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto">
               Content structured around JLPT levels. Start with N5 fundamentals and progress at your own pace.
@@ -696,8 +695,8 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto text-center">
           <SectionReveal>
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm tracking-widest uppercase">Choose Your Buddy</span>
-            <h2 className="mt-4 text-4xl sm:text-5xl font-black text-zinc-900 dark:text-zinc-100">
-              8 unique companions.
+            <h2 className="mt-4 text-4xl sm:text-5xl text-zinc-900 dark:text-zinc-100">
+              <span className="font-black">8 unique</span> <span className="font-display italic">companions.</span>
             </h2>
             <p className="mt-4 text-lg text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto">
               Pick a study buddy that matches your vibe. Each has their own personality.
@@ -751,8 +750,8 @@ export default function HomePage() {
             >
               日本語
             </motion.div>
-            <h2 className="mt-6 text-4xl sm:text-6xl font-black text-zinc-900 dark:text-zinc-100 leading-tight">
-              Ready to start your<br />Japanese journey?
+            <h2 className="mt-6 text-4xl sm:text-6xl text-zinc-900 dark:text-zinc-100 leading-tight">
+              <span className="font-black">Ready to start your</span><br /><span className="font-display italic">Japanese journey?</span>
             </h2>
             <p className="mt-6 text-xl text-zinc-500 dark:text-zinc-400 max-w-lg mx-auto">
               Join thousands of learners. Free forever for core features. No credit card, no catch.

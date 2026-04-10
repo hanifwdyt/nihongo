@@ -46,10 +46,10 @@ export default function NavBar() {
   };
 
   return (
-    <nav className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-      <Link href={user ? '/dashboard' : '/'} className="font-bold text-lg tracking-tight">
-        <span className="text-emerald-600">日本語</span>{' '}
-        <span className="text-zinc-900 dark:text-zinc-100">Nihongo</span>
+    <nav className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      <Link href={user ? '/dashboard' : '/home'} className="flex items-center gap-2 group">
+        <span className="font-jp text-xl font-bold text-emerald-600 group-hover:text-emerald-500 transition-colors">日本語</span>
+        <span className="font-display text-xl italic text-zinc-900 dark:text-zinc-100">Nihongo</span>
       </Link>
 
       <div className="flex items-center gap-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">

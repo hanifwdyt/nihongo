@@ -90,38 +90,39 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Welcome header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            Welcome back, {displayName}! {'\u{1F38C}'}
-          </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
-            Keep up the great work on your Japanese journey.
-          </p>
-        </div>
+      <div>
+        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 tracking-wide">
+          {'\u{1F38C}'} おかえりなさい
+        </p>
+        <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 dark:text-zinc-100 mt-1">
+          Welcome back, <span className="font-display italic">{displayName}</span>
+        </h1>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2">
+          Keep up the great work on your Japanese journey.
+        </p>
       </div>
 
       {/* Streak widget */}
-      <div className="flex gap-4">
-        <div className="flex-1 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950 border border-orange-200 dark:border-orange-800 rounded-2xl p-5">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-gradient-to-br from-orange-50 to-amber-50/50 dark:from-orange-950/50 dark:to-amber-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-2xl p-5">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{'\u{1F525}'}</span>
+            <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center text-2xl">{'\u{1F525}'}</div>
             <div>
-              <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                {currentStreak} day{currentStreak !== 1 ? 's' : ''}
+              <p className="text-2xl font-black text-orange-700 dark:text-orange-300 tabular-nums">
+                {currentStreak} <span className="text-sm font-medium">day{currentStreak !== 1 ? 's' : ''}</span>
               </p>
-              <p className="text-sm text-orange-600 dark:text-orange-400">Current streak</p>
+              <p className="text-xs text-orange-600/70 dark:text-orange-400/70 font-medium">Current streak</p>
             </div>
           </div>
         </div>
-        <div className="flex-1 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border border-purple-200 dark:border-purple-800 rounded-2xl p-5">
+        <div className="bg-gradient-to-br from-purple-50 to-violet-50/50 dark:from-purple-950/50 dark:to-violet-950/30 border border-purple-200/60 dark:border-purple-800/40 rounded-2xl p-5">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{'\u{1F3C6}'}</span>
+            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-2xl">{'\u{1F3C6}'}</div>
             <div>
-              <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
-                {longestStreak} day{longestStreak !== 1 ? 's' : ''}
+              <p className="text-2xl font-black text-purple-700 dark:text-purple-300 tabular-nums">
+                {longestStreak} <span className="text-sm font-medium">day{longestStreak !== 1 ? 's' : ''}</span>
               </p>
-              <p className="text-sm text-purple-600 dark:text-purple-400">Best streak</p>
+              <p className="text-xs text-purple-600/70 dark:text-purple-400/70 font-medium">Best streak</p>
             </div>
           </div>
         </div>
@@ -148,24 +149,24 @@ export default async function DashboardPage() {
       )}
 
       {/* Current level section */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+      <div className="card-elevated p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 tracking-wide">
                 {currentLevelData.label}
               </span>
               <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
                 {currentLevelData.name}
               </h2>
             </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1.5 tracking-wide">
               Your current level
             </p>
           </div>
           <Link
             href={`/learn/${user.currentLevel}`}
-            className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 transition-colors"
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-500 transition-all shadow-md shadow-emerald-600/15 hover:shadow-lg hover:shadow-emerald-600/20"
           >
             Continue Learning
           </Link>
@@ -225,19 +226,22 @@ export default async function DashboardPage() {
       {/* Chat with Sensei */}
       <Link
         href="/buddy"
-        className="block bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-6 hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors"
+        className="group block relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl p-6 hover:shadow-xl hover:shadow-emerald-600/15 transition-all"
       >
-        <div className="flex items-center gap-4">
-          <span className="text-4xl">{'\u{1F9D1}\u{200D}\u{1F3EB}'}</span>
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/0 via-white/5 to-emerald-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+        <div className="relative flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-3xl">
+            {'\u{1F9D1}\u{200D}\u{1F3EB}'}
+          </div>
           <div>
-            <p className="font-bold text-emerald-800 dark:text-emerald-200 text-lg">
-              Chat with Sensei
+            <p className="font-bold text-white text-lg">
+              Chat with <span className="font-display italic">Sensei</span>
             </p>
-            <p className="text-sm text-emerald-600 dark:text-emerald-400">
+            <p className="text-sm text-emerald-100/80">
               Practice conversation, ask questions, or get grammar help
             </p>
           </div>
-          <span className="ml-auto text-emerald-400 dark:text-emerald-600 text-xl">{'\u{2192}'}</span>
+          <svg className="ml-auto w-6 h-6 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
         </div>
       </Link>
     </div>
@@ -256,20 +260,21 @@ function ProgressBar({
   color: 'emerald' | 'sky';
 }) {
   const pct = total > 0 ? Math.min((current / total) * 100, 100) : 0;
-  const bgColor = color === 'emerald' ? 'bg-emerald-600' : 'bg-sky-600';
-  const trackColor = 'bg-zinc-200 dark:bg-zinc-700';
+  const barGradient = color === 'emerald'
+    ? 'bg-gradient-to-r from-emerald-600 to-emerald-400'
+    : 'bg-gradient-to-r from-sky-600 to-sky-400';
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1.5">
         <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{label}</span>
-        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-          {current}/{total}
+        <span className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+          {current}<span className="text-zinc-400 font-normal">/{total}</span>
         </span>
       </div>
-      <div className={`w-full h-2 ${trackColor} rounded-full overflow-hidden`}>
+      <div className="w-full h-2.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
         <div
-          className={`h-full ${bgColor} rounded-full transition-all duration-500`}
+          className={`h-full ${barGradient} rounded-full transition-all duration-700 ease-out`}
           style={{ width: `${pct}%` }}
         />
       </div>
