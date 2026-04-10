@@ -9,6 +9,7 @@ export default function NavBar() {
   const [user, setUser] = useState<{ name: string; currentLevel: string } | null>(null);
   const [checked, setChecked] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -30,6 +31,11 @@ export default function NavBar() {
     check();
   }, [pathname]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
 
@@ -38,101 +44,153 @@ export default function NavBar() {
       isActive(href) ? 'text-emerald-600 dark:text-emerald-500' : ''
     }`;
 
+  const mobileLinkClass = (href: string) =>
+    `block px-4 py-3 text-sm font-medium transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/60 ${
+      isActive(href)
+        ? 'text-emerald-600 dark:text-emerald-500'
+        : 'text-zinc-700 dark:text-zinc-300'
+    }`;
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
     setShowMenu(false);
+    setMobileOpen(false);
     router.push('/');
   };
 
   return (
-    <nav className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-      <Link href={user ? '/dashboard' : '/home'} className="flex items-center gap-2 group">
-        <span className="font-jp text-xl font-bold text-emerald-600 group-hover:text-emerald-500 transition-colors">日本語</span>
-        <span className="font-display text-xl italic text-zinc-900 dark:text-zinc-100">Nihongo</span>
-      </Link>
+    <>
+      <nav className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <Link href={user ? '/dashboard' : '/home'} className="flex items-center gap-2 group">
+          <span className="font-jp text-xl font-bold text-emerald-600 group-hover:text-emerald-500 transition-colors">日本語</span>
+          <span className="font-display text-xl italic text-zinc-900 dark:text-zinc-100">Nihongo</span>
+        </Link>
 
-      <div className="flex items-center gap-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-        {checked && user ? (
-          <>
-            <Link href="/dashboard" className={linkClass('/dashboard')}>
-              Dashboard
-            </Link>
-            <Link href="/kana" className={linkClass('/kana')}>
-              Kana
-            </Link>
-            <Link href={`/learn/${user.currentLevel}`} className={linkClass('/learn')}>
-              Learn
-            </Link>
-            <Link href="/buddy" className={linkClass('/buddy')}>
-              Sensei
-            </Link>
-            {/* User menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xs font-bold text-emerald-600">
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+          {checked && user ? (
+            <>
+              <Link href="/dashboard" className={linkClass('/dashboard')}>Dashboard</Link>
+              <Link href="/kana" className={linkClass('/kana')}>Kana</Link>
+              <Link href={`/learn/${user.currentLevel}`} className={linkClass('/learn')}>Learn</Link>
+              <Link href="/buddy" className={linkClass('/buddy')}>Sensei</Link>
+              {/* User menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xs font-bold text-emerald-600">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M3 5L6 8L9 5" />
+                  </svg>
+                </button>
+                {showMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl z-50 py-1">
+                      <div className="px-3 py-2 text-xs text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+                        {user.name}
+                      </div>
+                      <Link href="/dashboard" onClick={() => setShowMenu(false)} className="block px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                        Dashboard
+                      </Link>
+                      <Link href="/pricing" onClick={() => setShowMenu(false)} className="block px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                        Pricing
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          ) : checked ? (
+            <>
+              <Link href="/kana" className={linkClass('/kana')}>Kana</Link>
+              <Link href="/pricing" className={linkClass('/pricing')}>Pricing</Link>
+              <Link href="/login" className={linkClass('/login')}>Sign In</Link>
+              <Link href="/register" className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                Sign Up
+              </Link>
+            </>
+          ) : null}
+          <ThemeToggle />
+        </div>
+
+        {/* Mobile: theme toggle + hamburger */}
+        <div className="flex md:hidden items-center gap-2">
+          <ThemeToggle />
+          {checked && (
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {mobileOpen ? (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M4 4L16 16M16 4L4 16" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M3 6h14M3 10h14M3 14h14" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+      </nav>
+
+      {/* Mobile menu dropdown */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-zinc-200/60 dark:border-zinc-800/60 bg-white dark:bg-zinc-950">
+          {user ? (
+            <>
+              <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-sm font-bold text-emerald-600">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M3 5L6 8L9 5" />
-                </svg>
-              </button>
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl z-50 py-1">
-                    <div className="px-3 py-2 text-xs text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
-                      {user.name}
-                    </div>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setShowMenu(false)}
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/pricing"
-                      onClick={() => setShowMenu(false)}
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                    >
-                      Pricing
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </>
-        ) : checked ? (
-          <>
-            <Link href="/kana" className={linkClass('/kana')}>
-              Kana
-            </Link>
-            <Link href="/pricing" className={linkClass('/pricing')}>
-              Pricing
-            </Link>
-            <Link href="/login" className={linkClass('/login')}>
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-            >
-              Sign Up
-            </Link>
-          </>
-        ) : null}
-        <ThemeToggle />
-      </div>
-    </nav>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{user.name}</span>
+              </div>
+              <Link href="/dashboard" className={mobileLinkClass('/dashboard')}>Dashboard</Link>
+              <Link href="/kana" className={mobileLinkClass('/kana')}>Kana</Link>
+              <Link href={`/learn/${user.currentLevel}`} className={mobileLinkClass('/learn')}>Learn</Link>
+              <Link href="/buddy" className={mobileLinkClass('/buddy')}>Sensei</Link>
+              <Link href="/pricing" className={mobileLinkClass('/pricing')}>Pricing</Link>
+              <div className="border-t border-zinc-100 dark:border-zinc-800 mt-1">
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                >
+                  Sign out
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Link href="/kana" className={mobileLinkClass('/kana')}>Kana</Link>
+              <Link href="/pricing" className={mobileLinkClass('/pricing')}>Pricing</Link>
+              <Link href="/login" className={mobileLinkClass('/login')}>Sign In</Link>
+              <div className="px-4 py-3">
+                <Link
+                  href="/register"
+                  className="block text-center px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }
