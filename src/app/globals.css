@@ -121,6 +121,45 @@ rt {
   border-radius: 0.5rem;
 }
 
+/* ─── Washi paper texture ─── */
+
+.texture-washi::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeDiffuseLighting in='noise' lighting-color='%23fff' surfaceScale='1.5'%3E%3CfeDistantLight azimuth='45' elevation='55'/%3E%3C/feDiffuseLighting%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-size: 512px;
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-color-scheme: dark) {
+  .texture-washi::before {
+    opacity: 0.015;
+    mix-blend-mode: screen;
+  }
+}
+
+/* ─── Ink wash gradient ─── */
+
+.ink-wash {
+  background: radial-gradient(ellipse 120% 80% at 15% 50%, rgba(0,0,0,0.025) 0%, transparent 70%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .ink-wash {
+    background: radial-gradient(ellipse 120% 80% at 15% 50%, rgba(255,255,255,0.015) 0%, transparent 70%);
+  }
+}
+
+/* ─── Vertical Japanese text ─── */
+
+.writing-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
 /* ─── Custom scrollbar ─── */
 
 ::-webkit-scrollbar {
