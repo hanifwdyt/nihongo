@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import { getDb, ensureMigrated } from '@/lib/db';
 import { users, srsCards, quizResults, streaks, buddyMessages } from '@/lib/db/schema';
 import { eq, desc, and, lte, sql } from 'drizzle-orm';
-import { getAI, BUDDY_MODEL } from '@/lib/ai/client';
+import { getAI, BUDDY_MODEL, BUDDY_EXTRA, NO_STREAM } from '@/lib/ai/client';
 import { buildSenseiPrompt } from '@/lib/ai/persona';
 import { toolDefinitions, executeToolCall } from '@/lib/ai/tools';
 import { getMemories } from '@/lib/ai/memory';
@@ -129,6 +129,8 @@ export async function POST(request: Request) {
         messages,
         tools: toolDefinitions,
         max_tokens: 1024,
+        ...NO_STREAM,
+        ...BUDDY_EXTRA,
       });
 
       const choice = response.choices[0];
@@ -179,6 +181,7 @@ export async function POST(request: Request) {
       tools: toolDefinitions,
       max_tokens: 1024,
       stream: true,
+      ...BUDDY_EXTRA,
     });
 
     let fullContent = '';

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { getSession } from '@/lib/auth';
-import { getAI, BUDDY_MODEL } from '@/lib/ai/client';
+import { getAI, BUDDY_MODEL, BUDDY_EXTRA, NO_STREAM } from '@/lib/ai/client';
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -25,6 +25,8 @@ export async function POST(request: Request) {
         { role: 'user', content: message },
       ],
       max_tokens: 256,
+      ...NO_STREAM,
+      ...BUDDY_EXTRA,
     });
 
     const text =
